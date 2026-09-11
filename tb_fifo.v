@@ -1,9 +1,4 @@
-// =============================================================
-// tb_fifo.v -- Self-checking testbench for sync_fifo
-// Part A: directed tests (fill to full, drain to empty, simultaneous
-//         read+write, overflow/underflow protection)
-// Part B: randomized test with a software scoreboard queue
-// =============================================================
+
 `timescale 1ns/1ps
 
 module tb_fifo;
@@ -35,11 +30,7 @@ module tb_fifo;
     // Free-running clock
     always #(CLK_PERIOD_NS/2) clk = ~clk;
 
-    // ---------------------------------------------------------
-    // Software "model" queue -- a plain Verilog array acting as
-    // our reference FIFO, so we know the exact expected order of
-    // data coming back out, independent of the DUT.
-    // ---------------------------------------------------------
+    
     reg [DATA_WIDTH-1:0] model_q [0:255];
     integer model_head, model_tail, model_count;
 
@@ -66,7 +57,7 @@ module tb_fifo;
         end
     endtask
 
-    // Simple helper tasks to pulse write/read for exactly one cycle
+   
     task do_write(input [DATA_WIDTH-1:0] d);
         begin
             @(negedge clk);
@@ -101,11 +92,9 @@ module tb_fifo;
         rst_n = 1;
         #(CLK_PERIOD_NS*2);
 
-        // ===================================================
+       
         // PART A -- Directed tests
-        // ===================================================
-
-        // A1: FIFO should start empty
+       
         if (empty !== 1'b1) begin
             $display("FAIL: FIFO should be empty after reset");
             errors = errors + 1;
@@ -113,7 +102,7 @@ module tb_fifo;
             $display("PASS: FIFO is empty after reset");
         end
 
-        // A2: Write until full (write exactly FIFO_DEPTH items)
+        
         $display("\n-- A2: Filling FIFO to full --");
         for (i = 0; i < FIFO_DEPTH; i = i + 1) begin
             do_write(i);
@@ -126,7 +115,7 @@ module tb_fifo;
             $display("PASS: FIFO correctly reports FULL after %0d writes", FIFO_DEPTH);
         end
 
-        // A3: Attempt to write while full -- must be ignored (overflow protection)
+        
         do_write(8'hEE);   // this value should NOT enter the FIFO
         if (full !== 1'b1) begin
             $display("FAIL: an extra write while full corrupted the FIFO state");
@@ -135,7 +124,7 @@ module tb_fifo;
             $display("PASS: write while FULL was correctly ignored");
         end
 
-        // A4: Drain to empty, checking every value comes out in order
+       
         $display("\n-- A4: Draining FIFO to empty --");
         for (i = 0; i < FIFO_DEPTH; i = i + 1) begin
             do_read;
@@ -148,7 +137,7 @@ module tb_fifo;
             $display("PASS: FIFO correctly reports EMPTY after full drain");
         end
 
-        // A5: Attempt to read while empty -- must be ignored (underflow protection)
+       
         do_read;
         if (empty !== 1'b1) begin
             $display("FAIL: an extra read while empty corrupted the FIFO state");
@@ -157,7 +146,7 @@ module tb_fifo;
             $display("PASS: read while EMPTY was correctly ignored");
         end
 
-        // A6: Simultaneous write + read on a partially-filled FIFO
+        
         $display("\n-- A6: Simultaneous write + read --");
         do_write(8'hA5);
         model_push(8'hA5);
@@ -172,13 +161,13 @@ module tb_fifo;
         model_push(8'h3C);
         model_pop_and_check(rd_data);
 
-        // drain the remaining 2 items
+        
         do_read; model_pop_and_check(rd_data);
         do_read; model_pop_and_check(rd_data);
 
-        // ===================================================
+       
         // PART B -- Randomized test
-        // ===================================================
+        
         $display("\n-- B: Randomized write/read sequence (50 operations) --");
         for (i = 0; i < 50; i = i + 1) begin
             if ($random % 2 == 0 && !full) begin
@@ -195,9 +184,7 @@ module tb_fifo;
             model_pop_and_check(rd_data);
         end
 
-        // ===================================================
-        // Summary
-        // ===================================================
+        
         if (errors == 0)
             $display("\n*** ALL TESTS PASSED ***");
         else
